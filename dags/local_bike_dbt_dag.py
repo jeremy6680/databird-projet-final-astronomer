@@ -1,12 +1,16 @@
+from functools import partial
 from pathlib import Path
 
 from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.utils.email import send_email
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
 from cosmos.constants import LoadMode
 from pendulum import datetime
+
+from dbt_monitor import capture_run_results, send_pipeline_report
 
 DBT_PROJECT_PATH = Path("/usr/local/airflow/dbt/local_bike")
 DBT_PROFILES_PATH = Path("/usr/local/airflow/.dbt_profiles")
@@ -106,9 +110,36 @@ def local_bike_pipeline():
         ),
     )
 
+    monitor_staging = PythonOperator(
+        task_id="monitor_staging",
+        python_callable=partial(capture_run_results, "staging"),
+    )
+
+    monitor_intermediate = PythonOperator(
+        task_id="monitor_intermediate",
+        python_callable=partial(capture_run_results, "intermediate"),
+    )
+
+    monitor_mart = PythonOperator(
+        task_id="monitor_mart",
+        python_callable=partial(capture_run_results, "mart"),
+    )
+
+    report_pipeline = PythonOperator(
+        task_id="report_pipeline",
+        python_callable=send_pipeline_report,
+        trigger_rule="all_done",
+    )
+
     end = EmptyOperator(task_id="end")
 
-    start >> staging >> intermediate >> mart >> end
+    (
+        start
+        >> staging >> monitor_staging
+        >> intermediate >> monitor_intermediate
+        >> mart >> monitor_mart
+        >> report_pipeline >> end
+    )
 
 
 local_bike_pipeline()
