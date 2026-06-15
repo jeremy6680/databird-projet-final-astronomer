@@ -6,4 +6,4 @@ select store_id,
   city,
   state,
   zip_code
-from {{ source('bike_database', 'stores') }}
+from {{ source('bike_database_astronomer', 'stores') }}

@@ -6,4 +6,4 @@ select customer_id,
   street,
   city,
   state
-from {{ source('bike_database', 'customers') }}
+from {{ source('bike_database_astronomer', 'customers') }}

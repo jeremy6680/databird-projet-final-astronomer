@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: bike_database
+  - name: bike_database_astronomer
     tables:
       - name: brands
       - name: categories

@@ -4,4 +4,4 @@ select product_id,
   category_id,
   model_year,
   list_price
-from {{ source('bike_database', 'products') }}
+from {{ source('bike_database_astronomer', 'products') }}

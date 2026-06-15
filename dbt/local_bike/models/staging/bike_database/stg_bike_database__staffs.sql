@@ -6,4 +6,4 @@ select staff_id,
   case when active = 1 THEN true else false end as is_active,
   store_id,
   case when manager_id = 'NULL' THEN null else manager_id end as manager_id
-from {{ source('bike_database', 'staffs') }}
+from {{ source('bike_database_astronomer', 'staffs') }}
