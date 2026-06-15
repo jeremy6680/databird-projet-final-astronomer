@@ -1,0 +1,6 @@
+version: 2
+
+models:
+
+  - name: mrt_operations__product_performance
+    description: "This model aggregates sales by product to enrich product information with total sales amount and total items sold."

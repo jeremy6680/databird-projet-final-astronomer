@@ -1,0 +1,43 @@
+version: 2
+
+models:
+
+  - name: int_bike_database__customers
+    columns:
+      - name: customer_id
+        description: "Primary key for this table."
+        tests:
+          - unique
+          - not_null
+
+  - name: int_bike_database__order_items
+    columns:
+      - name: order_item_id
+        description: "Primary key for this table."
+        tests:
+          - unique
+          - not_null
+
+  - name: int_bike_database__orders
+    columns:
+      - name: order_id
+        description: "Primary key for this table."
+        tests:
+          - unique
+          - not_null
+
+  - name: int_bike_database__products
+    columns:
+      - name: product_id
+        description: "Primary key for this table."
+        tests:
+          - unique
+          - not_null
+
+  - name: int_bike_database__stocks
+    columns:
+      - name: stock_id
+        description: "Primary key for this table."
+        tests:
+          - unique
+          - not_null

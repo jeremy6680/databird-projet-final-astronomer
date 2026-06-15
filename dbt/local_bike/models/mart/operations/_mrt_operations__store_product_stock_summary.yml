@@ -1,0 +1,6 @@
+version: 2
+
+models:
+
+  - name: mrt_operations__store_product_stock_summary
+    description: ""
