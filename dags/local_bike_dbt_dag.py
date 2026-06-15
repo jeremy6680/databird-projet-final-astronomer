@@ -8,12 +8,18 @@ from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.utils.email import send_email
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
 from cosmos.constants import LoadMode
+from cosmos.operators.local import DbtDocsGCSLocalOperator
 from pendulum import datetime
 
-from dbt_monitor import capture_run_results, send_pipeline_report
+from include.dbt_monitor import capture_run_results, send_pipeline_report
 
 DBT_PROJECT_PATH = Path("/usr/local/airflow/dbt/local_bike")
 DBT_PROFILES_PATH = Path("/usr/local/airflow/.dbt_profiles")
+
+# Bucket GCS où les fichiers de doc seront uploadés.
+# Activer le website hosting sur ce bucket : gsutil web set -m index.html gs://BUCKET_NAME
+GCS_BUCKET = "local-bike-dbt-docs"
+GCS_FOLDER = "docs"
 
 profile_config = ProfileConfig(
     profile_name="default",
@@ -125,6 +131,19 @@ def local_bike_pipeline():
         python_callable=partial(capture_run_results, "mart"),
     )
 
+    generate_docs = DbtDocsGCSLocalOperator(
+        task_id="generate_docs",
+        project_dir=DBT_PROJECT_PATH,
+        profile_config=profile_config,
+        execution_config=execution_config,
+        # Connexion Airflow de type "Google Cloud" avec les droits Storage Object Admin
+        connection_id="google_cloud_default",
+        bucket_name=GCS_BUCKET,
+        folder_dir=GCS_FOLDER,
+        # Overwrite les fichiers existants à chaque run pour garder la doc à jour
+        overwrite_existing_files=True,
+    )
+
     report_pipeline = PythonOperator(
         task_id="report_pipeline",
         python_callable=send_pipeline_report,
@@ -138,7 +157,8 @@ def local_bike_pipeline():
         >> staging >> monitor_staging
         >> intermediate >> monitor_intermediate
         >> mart >> monitor_mart
-        >> report_pipeline >> end
+        >> [generate_docs, report_pipeline]
+        >> end
     )
 
 
