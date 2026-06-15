@@ -255,9 +255,7 @@ Après le mart, la tâche `generate_docs` (via `DbtDocsGCSLocalOperator` de Cosm
 
 La documentation est accessible publiquement à :
 
-```
-https://storage.googleapis.com/local-bike-dbt-docs/docs/index.html
-```
+**[https://storage.googleapis.com/local-bike-dbt-docs/docs/index.html](https://storage.googleapis.com/local-bike-dbt-docs/docs/index.html)**
 
 ---
 
