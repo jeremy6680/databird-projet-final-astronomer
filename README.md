@@ -1,4 +1,4 @@
-# Projet Final Astronomer — Orchestration dbt + Airflow
+# Projet Local Bike — Orchestration dbt + Airflow
 
 Pipeline de données orchestrée avec Apache Airflow (via **Astro CLI**) et **Astronomer Cosmos**, qui exécute un projet **dbt** sur **BigQuery**.
 
