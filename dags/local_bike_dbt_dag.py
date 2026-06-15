@@ -2,6 +2,8 @@ from pathlib import Path
 
 from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
+from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
+from airflow.utils.email import send_email
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
 from cosmos.constants import LoadMode
 from pendulum import datetime
@@ -24,9 +26,37 @@ execution_config = ExecutionConfig(
     dbt_executable_path="/usr/local/bin/dbt",
 )
 
-render_config = RenderConfig(
-    load_method=LoadMode.DBT_LS,
-)
+
+def notify_slack(context):
+    dag_id = context["dag"].dag_id
+    task_id = context["task_instance"].task_id
+    log_url = context["task_instance"].log_url
+    SlackWebhookHook(slack_webhook_conn_id="slack_webhook").send_text(
+        f":red_circle: *DAG échoué*\n"
+        f"*DAG*: {dag_id}\n"
+        f"*Task*: {task_id}\n"
+        f"*Logs*: {log_url}"
+    )
+
+
+def notify_email(context):
+    dag_id = context["dag"].dag_id
+    task_id = context["task_instance"].task_id
+    log_url = context["task_instance"].log_url
+    send_email(
+        to="jerem9911@hotmail.com",
+        subject=f"[Airflow] Échec du DAG {dag_id}",
+        html_content=(
+            f"<h3>Le DAG <b>{dag_id}</b> a échoué.</h3>"
+            f"<p><b>Task :</b> {task_id}</p>"
+            f"<p><a href='{log_url}'>Voir les logs</a></p>"
+        ),
+    )
+
+
+def on_failure_callbacks(context):
+    notify_slack(context)
+    notify_email(context)
 
 
 @dag(
@@ -34,23 +64,51 @@ render_config = RenderConfig(
     schedule="@daily",
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    default_args={"retries": 2},
+    default_args={
+        "retries": 2,
+        "on_failure_callback": on_failure_callbacks,
+    },
     tags=["dbt", "bigquery"],
 )
 def local_bike_pipeline():
     start = EmptyOperator(task_id="start")
 
-    dbt_group = DbtTaskGroup(
-        group_id="dbt_transformations",
+    staging = DbtTaskGroup(
+        group_id="staging",
         project_config=project_config,
         profile_config=profile_config,
         execution_config=execution_config,
-        render_config=render_config,
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_LS,
+            select=["path:models/staging"],
+        ),
+    )
+
+    intermediate = DbtTaskGroup(
+        group_id="intermediate",
+        project_config=project_config,
+        profile_config=profile_config,
+        execution_config=execution_config,
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_LS,
+            select=["path:models/intermediate"],
+        ),
+    )
+
+    mart = DbtTaskGroup(
+        group_id="mart",
+        project_config=project_config,
+        profile_config=profile_config,
+        execution_config=execution_config,
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_LS,
+            select=["path:models/mart"],
+        ),
     )
 
     end = EmptyOperator(task_id="end")
 
-    start >> dbt_group >> end
+    start >> staging >> intermediate >> mart >> end
 
 
 local_bike_pipeline()
