@@ -45,7 +45,7 @@ projet_final_astronomer/
 │   ├── profiles.yml             # Connexion BigQuery (service account)
 │   └── bigqueryKey.json         # Clé de service GCP (à ne pas commiter !)
 ├── Dockerfile                   # Image Astro Runtime 3.2-5
-├── requirements.txt             # astronomer-cosmos, dbt-bigquery, slack provider
+├── requirements.txt             # astronomer-cosmos, dbt-bigquery, slack/smtp providers
 └── airflow_settings.yaml        # Connexions/Variables Airflow locales (dont google_cloud_default)
 ```
 
