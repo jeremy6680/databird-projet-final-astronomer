@@ -3,3 +3,4 @@ astronomer-cosmos
 dbt-bigquery
 apache-airflow-providers-slack
 apache-airflow-providers-google
+apache-airflow-providers-smtp

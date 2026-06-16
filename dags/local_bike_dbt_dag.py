@@ -5,7 +5,7 @@ from airflow.decorators import dag
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
-from airflow.utils.email import send_email
+from airflow.providers.smtp.notifications.smtp import SmtpNotifier
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
 from cosmos.constants import LoadMode
 from cosmos.operators.local import DbtDocsGCSLocalOperator
@@ -49,24 +49,15 @@ def notify_slack(context):
     )
 
 
-def notify_email(context):
-    dag_id = context["dag"].dag_id
-    task_id = context["task_instance"].task_id
-    log_url = context["task_instance"].log_url
-    send_email(
-        to="jerem9911@hotmail.com",
-        subject=f"[Airflow] Échec du DAG {dag_id}",
-        html_content=(
-            f"<h3>Le DAG <b>{dag_id}</b> a échoué.</h3>"
-            f"<p><b>Task :</b> {task_id}</p>"
-            f"<p><a href='{log_url}'>Voir les logs</a></p>"
-        ),
-    )
-
-
-def on_failure_callbacks(context):
-    notify_slack(context)
-    notify_email(context)
+notify_email = SmtpNotifier(
+    to="jerem9911@hotmail.com",
+    subject="[Airflow] Échec du DAG {{ dag.dag_id }}",
+    html_content=(
+        "<h3>Le DAG <b>{{ dag.dag_id }}</b> a échoué.</h3>"
+        "<p><b>Task :</b> {{ task_instance.task_id }}</p>"
+        "<p><a href='{{ task_instance.log_url }}'>Voir les logs</a></p>"
+    ),
+)
 
 
 @dag(
@@ -76,7 +67,7 @@ def on_failure_callbacks(context):
     catchup=False,
     default_args={
         "retries": 2,
-        "on_failure_callback": on_failure_callbacks,
+        "on_failure_callback": [notify_slack, notify_email],
     },
     tags=["dbt", "bigquery"],
 )
